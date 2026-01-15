@@ -1,12 +1,21 @@
 {
-  "name": "notify-cli",
+  "name": "@agilia/notify-cli",
   "version": "1.0.0",
   "description": "A CLI app to receive notifications when AFK",
   "type": "module",
   "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "bin": {
     "notify": "./dist/index.js"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Agilia-srl/notify-cli.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Agilia-srl/notify-cli/issues"
+  },
+  "homepage": "https://github.com/Agilia-srl/notify-cli#readme",
   "scripts": {
     "build": "tsc",
     "dev": "tsx src/index.ts",
@@ -15,8 +24,13 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
   },
-  "keywords": ["cli", "notifications", "telegram", "effect"],
-  "author": "",
+  "keywords": [
+    "cli",
+    "notifications",
+    "afk",
+    "agent"
+  ],
+  "author": "Giacomo Arienti <giacomo.arienti@agilia.dev>",
   "license": "ISC",
   "engines": {
     "node": ">=18"
