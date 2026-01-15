@@ -7,6 +7,7 @@ import {
   ProviderName,
 } from "../services/provider.js";
 import { TelegramConfig } from "../schemas.js";
+import { TelegramProvider, TelegramProviderLive } from "../providers/telegram.js";
 
 // Helper to create readline interface
 const createReadline = () =>
@@ -112,9 +113,33 @@ const setupTelegram = Effect.gen(function* () {
     return yield* Effect.fail(new Error("Bot token is required"));
   }
 
+  // Test the bot token by calling getMe API
+  yield* Console.log("\n🔍 Validating bot token...");
+  
+  const telegram = yield* TelegramProvider;
+  const testResult = yield* telegram.testConnection(botToken.trim()).pipe(
+    Effect.match({
+      onFailure: (error) => ({ ok: false as const, message: error.message }),
+      onSuccess: () => ({ ok: true as const })
+    })
+  );
+
+  if (!testResult.ok) {
+    yield* Console.error(
+      `❌ Invalid bot token: ${testResult.message}`
+    );
+    yield* Console.error("   Configuration was not saved.");
+    return yield* Effect.fail(new Error("Telegram bot token validation failed"));
+  }
+
+  yield* Console.log("✅ Bot token validated successfully!");
+
+  yield* Console.log("\nDefault recipient chat ID");
+  yield* Console.log("(You can retrieve your chat ID by starting the bot @getidsbot on Telegram)\n");
+
   const rl = createReadline();
   const defaultRecipient = yield* Effect.promise(() =>
-    question(rl, "\nDefault recipient chat ID (optional, press Enter to skip): ")
+    question(rl, "(optional, press Enter to skip): ")
   );
   rl.close();
 
@@ -149,8 +174,6 @@ export const setup = Command.make("setup", {}, () =>
       case "telegram":
         yield* setupTelegram;
         break;
-      default:
-        yield* Console.error(`Unknown provider: ${selectedProvider}`);
     }
-  })
+  }).pipe(Effect.provide(TelegramProviderLive))
 );

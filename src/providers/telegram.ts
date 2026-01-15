@@ -9,6 +9,9 @@ export interface TelegramProvider {
     recipient: string,
     message: string
   ) => Effect.Effect<void, TelegramSendError>;
+  readonly testConnection: (
+    botToken: string
+  ) => Effect.Effect<void, TelegramSendError>;
 }
 
 // Errors
@@ -92,6 +95,56 @@ export const TelegramProviderLive = Layer.succeed(
         });
 
         req.write(data);
+        req.end();
+      }),
+
+    testConnection: (botToken: string): Effect.Effect<void, TelegramSendError> =>
+      Effect.async<void, TelegramSendError>((resume) => {
+        // Use Telegram Bot API getMe endpoint to test connection
+        const url = `https://api.telegram.org/bot${botToken.trim()}/getMe`;
+        
+        const urlObj = new URL(url);
+        
+        const options = {
+          hostname: urlObj.hostname,
+          port: 443,
+          path: urlObj.pathname,
+          method: "GET",
+        };
+
+        const req = https.request(options, (res) => {
+          let responseData = "";
+
+          res.on("data", (chunk) => {
+            responseData += chunk;
+          });
+
+          res.on("end", () => {
+            try {
+              const response = JSON.parse(responseData);
+              if (response.ok) {
+                resume(Effect.succeed(void 0));
+              } else {
+                resume(
+                  Effect.fail(
+                    new TelegramSendError(
+                      response.description || "Authentication failed"
+                    )
+                  )
+                );
+              }
+            } catch {
+              resume(
+                Effect.fail(new TelegramSendError("Invalid response from Telegram API"))
+              );
+            }
+          });
+        });
+
+        req.on("error", (error) => {
+          resume(Effect.fail(new TelegramSendError(error.message)));
+        });
+
         req.end();
       }),
   }

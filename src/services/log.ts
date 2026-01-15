@@ -29,31 +29,29 @@ export const LogServiceLive = Layer.succeed(
   LogService,
   {
     addLog: (entry: LogEntry): Effect.Effect<void, LogWriteError> =>
-      Effect.gen(function* () {
-        const logsPath = getLogsPath();
-        const dataDir = getDataDir();
+      Effect.try({
+        try: () => {
+          const logsPath = getLogsPath();
+          const dataDir = getDataDir();
 
-        try {
           // Ensure directory exists
           Fs.mkdirSync(dataDir, { recursive: true });
           
           // Append log entry as JSONL
           const line = JSON.stringify(entry) + "\n";
           Fs.appendFileSync(logsPath, line);
-        } catch (error) {
-          return yield* Effect.fail(
-            new LogWriteError(
-              `Failed to write log: ${error instanceof Error ? error.message : String(error)}`
-            )
-          );
-        }
+        },
+        catch: (error) => 
+          new LogWriteError(
+            `Failed to write log: ${error instanceof Error ? error.message : String(error)}`
+          )
       }),
 
     getLogs: (provider?: string): Effect.Effect<LogEntry[], LogReadError> =>
-      Effect.gen(function* () {
-        const logsPath = getLogsPath();
+      Effect.try({
+        try: () => {
+          const logsPath = getLogsPath();
 
-        try {
           if (!Fs.existsSync(logsPath)) {
             return [];
           }
@@ -73,30 +71,26 @@ export const LogServiceLive = Layer.succeed(
           }
 
           return entries;
-        } catch (error) {
-          return yield* Effect.fail(
-            new LogReadError(
-              `Failed to read logs: ${error instanceof Error ? error.message : String(error)}`
-            )
-          );
-        }
+        },
+        catch: (error) =>
+          new LogReadError(
+            `Failed to read logs: ${error instanceof Error ? error.message : String(error)}`
+          )
       }),
 
     clearLogs: (): Effect.Effect<void, LogWriteError> =>
-      Effect.gen(function* () {
-        const logsPath = getLogsPath();
+      Effect.try({
+        try: () => {
+          const logsPath = getLogsPath();
 
-        try {
           if (Fs.existsSync(logsPath)) {
             Fs.unlinkSync(logsPath);
           }
-        } catch (error) {
-          return yield* Effect.fail(
-            new LogWriteError(
-              `Failed to clear logs: ${error instanceof Error ? error.message : String(error)}`
-            )
-          );
-        }
+        },
+        catch: (error) =>
+          new LogWriteError(
+            `Failed to clear logs: ${error instanceof Error ? error.message : String(error)}`
+          )
       }),
   }
 );

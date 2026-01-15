@@ -53,36 +53,40 @@ export const ProviderServiceLive = Layer.succeed(
     getConfigRaw: (
       provider: ProviderName
     ): Effect.Effect<unknown, ProviderNotConfiguredError> =>
-      Effect.gen(function* () {
-        const configPath = getProviderConfigPath(provider);
+      Effect.try({
+        try: () => {
+          const configPath = getProviderConfigPath(provider);
 
-        if (!Fs.existsSync(configPath)) {
-          return yield* Effect.fail(new ProviderNotConfiguredError(provider));
-        }
+          if (!Fs.existsSync(configPath)) {
+            throw new ProviderNotConfiguredError(provider);
+          }
 
-        const content = Fs.readFileSync(configPath, "utf-8");
-        return JSON.parse(content);
+          const content = Fs.readFileSync(configPath, "utf-8");
+          return JSON.parse(content);
+        },
+        catch: (error) => 
+          error instanceof ProviderNotConfiguredError 
+            ? error 
+            : new ProviderNotConfiguredError(provider)
       }),
 
     saveConfig: (
       provider: ProviderName,
       config: unknown
     ): Effect.Effect<void, ProviderSaveError> =>
-      Effect.gen(function* () {
-        const providerDir = getProviderDir(provider);
-        const configPath = getProviderConfigPath(provider);
+      Effect.try({
+        try: () => {
+          const providerDir = getProviderDir(provider);
+          const configPath = getProviderConfigPath(provider);
 
-        try {
           Fs.mkdirSync(providerDir, { recursive: true });
           Fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
-        } catch (error) {
-          return yield* Effect.fail(
-            new ProviderSaveError(
-              provider,
-              `Failed to save config: ${error instanceof Error ? error.message : String(error)}`
-            )
-          );
-        }
+        },
+        catch: (error) =>
+          new ProviderSaveError(
+            provider,
+            `Failed to save config: ${error instanceof Error ? error.message : String(error)}`
+          )
       }),
 
     isConfigured: (provider: ProviderName): Effect.Effect<boolean> =>
